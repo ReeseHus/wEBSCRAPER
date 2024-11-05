@@ -1,0 +1,57 @@
+url = "https://www.booking.com/searchresults.html?ss=United+States+of+America&ssne=United+States+of+America&ssne_untouched=United+States+of+America&label=gen173nr-1FCAEoggI46AdIM1gEaFCIAQGYATG4ARfIARXYAQHoAQH4AQKIAgGoAgO4AujUqbkGwAIB0gIkYTVhNjE5ZDYtMGNmNi00NDIyLTllZmEtZWIwZDE5YmIzMDVj2AIF4AIB&aid=304142&lang=en-us&sb=1&src_elem=sb&src=searchresults&dest_id=224&dest_type=country&checkin=2024-12-01&checkout=2024-12-04&group_adults=1&no_rooms=1&group_children=0"
+path_to_file = r"C:\Users\suwyw\OneDrive\Documents\webscraper"
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import pandas as pd
+import time
+from bs4 import BeautifulSoup
+
+driver = webdriver.Firefox()
+driver.maximize_window()
+driver.get(url)
+
+last_height = 0
+
+while True:
+    driver.execute_script('window.scrollBy(0,1000)')
+    time.sleep(2)
+
+    new_height = driver.execute_script("return document.body.scrollHeight")
+    print(str(new_height)+"-"+str(last_height))
+
+    if (new_height == last_height):
+        break
+
+    else:
+        last_height = new_height
+
+
+page_source = driver.page_source
+
+f = open(path_to_file+"\\ushotels.txt", "w", encoding="utf-8")
+f.write(page_source)
+f.close()
+
+soup = BeautifulSoup(page_source,features="lxml")
+
+items = soup.find_all("div", class_="hotel__content")
+
+hotel_data = []
+
+for item in items:
+    hotel_info = {}
+
+    name = item.find("h3", class_="sr-hotel__name").text.strip()
+    hotel_info["Name"] = name
+
+    location = item.find("span", class_="sr-hotel__address").text.strip()
+    hotel_info["Location"] = location
+
+    price = item.find("span", class_="price-and-discounted-price").text.strip()
+    hotel_info["Price"] = price
+
+    hotel_data.append(hotel_info)
+
+df = pd.DataFrame(hotel_data)
+df.to_csv(path_to_file+"\\ushotels.csv", index=False)
